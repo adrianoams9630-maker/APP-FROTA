@@ -1,0 +1,78 @@
+# Gera o APK do app de viagem da Oeste Cargas.
+# Funciona com o app na raiz do repositório (package.json na raiz)
+# ou dentro da pasta app-viagem/. O APK sai em Actions → (execução) → Artifacts.
+name: Android · App Viagem Oeste Cargas
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Localizar o projeto do app
+        run: |
+          if [ -f app-viagem/package.json ]; then D=app-viagem
+          elif [ -f package.json ]; then D=.
+          else
+            F=$(find . -name capacitor.config.json -not -path '*/node_modules/*' | head -1)
+            [ -n "$F" ] || { echo "::error::Não encontrei o app (package.json + capacitor.config.json) no repositório."; ls -la; exit 1; }
+            D=$(dirname "$F")
+          fi
+          [ -f "$D/www/index.html" ] || { echo "::error::Falta $D/www/index.html"; exit 1; }
+          echo "APP_DIR=$D" >> "$GITHUB_ENV"
+          echo "App encontrado em: $D"; ls -la "$D"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # o pacote 'tools' foi removido pelo Google: instala só o necessário
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+          log-accepted-android-sdk-licenses: false
+
+      - name: Instalar dependências
+        run: cd "$APP_DIR" && npm install --no-audit --no-fund
+
+      - name: Gerar projeto Android, ícones e splash
+        run: |
+          cd "$APP_DIR"
+          [ -d android ] || npx cap add android
+          if [ -d assets ]; then npx capacitor-assets generate --android; fi
+          npx cap sync android
+
+      - name: Permissões (GPS e câmera) e versão
+        run: |
+          cd "$APP_DIR"
+          M=android/app/src/main/AndroidManifest.xml
+          for P in ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION CAMERA READ_MEDIA_IMAGES; do
+            grep -q "android.permission.$P\"" "$M" || sed -i "s#<application#<uses-permission android:name=\"android.permission.$P\" />\n    <application#" "$M"
+          done
+          grep -q 'android.hardware.location.gps' "$M" || sed -i 's#<application#<uses-feature android:name="android.hardware.location.gps" android:required="false" />\n    <application#' "$M"
+          grep -q 'android.hardware.camera' "$M" || sed -i 's#<application#<uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application#' "$M"
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          grep -n "uses-permission\|uses-feature" "$M"
+
+      - name: Compilar APK
+        run: |
+          cd "$APP_DIR/android"
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          mkdir -p "$GITHUB_WORKSPACE/apk"
+          cp app/build/outputs/apk/debug/*.apk "$GITHUB_WORKSPACE/apk/oeste-cargas-viagem-${{ github.run_number }}.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oeste-cargas-viagem-${{ github.run_number }}
+          path: apk/*.apk
