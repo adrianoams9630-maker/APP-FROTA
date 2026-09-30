@@ -1,0 +1,25 @@
+{
+  "name": "oeste-cargas-viagem",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App do motorista — viagens da Oeste Cargas (offline-first). Paidegua Sistema.",
+  "scripts": {
+    "android:gerar": "npx cap add android && npx capacitor-assets generate --android && npx cap sync android",
+    "android:sync": "npx cap sync android",
+    "android:abrir": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/camera": "^6.1.2",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/device": "^6.0.2",
+    "@capacitor/geolocation": "^6.1.0",
+    "@capacitor/haptics": "^6.0.2",
+    "@capacitor/network": "^6.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.0"
+  }
+}

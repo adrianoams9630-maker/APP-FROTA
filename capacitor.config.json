@@ -1,0 +1,21 @@
+{
+  "appId": "br.com.paideguasistema.oestecargas.viagem",
+  "appName": "Oeste Cargas Viagem",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#b20000"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#b20000"
+    }
+  }
+}
